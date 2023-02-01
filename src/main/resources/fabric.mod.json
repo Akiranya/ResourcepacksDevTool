@@ -2,10 +2,13 @@
   "schemaVersion": 1,
   "id": "resourcepack-dev-tool",
   "version": "${version}",
-  "name": "Resourcepack Dev Tool",
-  "description": "Handy Resourcepack tools for developers",
+  "name": "资源包 Dev Tools",
+  "description": "开发者专用的资源包开发工具",
   "authors": [
     "LoneDev"
+  ],
+  "contributors": [
+    "Nailm"
   ],
   "contact": {},
   "license": "LoneDev super professional License",
