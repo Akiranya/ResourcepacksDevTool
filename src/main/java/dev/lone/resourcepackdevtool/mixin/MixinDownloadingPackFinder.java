@@ -56,42 +56,33 @@ import java.util.concurrent.locks.ReentrantLock;
     @Overwrite public CompletableFuture<Void> loadServerPack(File packZip, ResourcePackSource packSource) {
         ResourcePackProfile.PackFactory packFactory = (name) -> new ZipResourcePack(name, packZip, false);
         ResourcePackProfile.Metadata metadata = ResourcePackProfile.loadMetadata("server", packFactory);
-        if (metadata == null) {
+        if (metadata == null)
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid pack metadata at " + packZip));
-        } else {
-            LOGGER.info("Applying server pack {}", packZip);
 
-            if (metadata.description().getString().contains("mewcraft") ||
-                metadata.description().getString().contains("上古时代")
-            ) {
-                // We are playing MewCraft!
-
-                ResourcePackProfile newServerPack = ResourcePackProfile.of(
-                    "server",
-                    Text.translatable("resourcePack.server.name"),
-                    true,
-                    name -> new ZipResourcePack(name, packZip, false),
-                    metadata,
-                    ResourceType.CLIENT_RESOURCES,
-                    ResourcePackProfile.InsertionPosition.TOP,
-                    false,
-                    packSource
-                );
-                if (this.serverContainer == null || !isPackCached(packZip)) {
-                    this.serverContainer = newServerPack;
-                    Configuration.inst().cacheServerPack(packZip);
-                    return MinecraftClient.getInstance().reloadResourcesConcurrently();
-                } else {
-                    ResourcepackDevTool.showLoadServerPackFromCacheToast();
-                    return CompletableFuture.completedFuture(null);
-                }
-            } else {
-                // We are playing a random server :(
-
-                this.serverContainer = ResourcePackProfile.of("server", SERVER_NAME_TEXT, true, packFactory, metadata, ResourceType.CLIENT_RESOURCES, ResourcePackProfile.InsertionPosition.TOP, true, packSource);
-                return MinecraftClient.getInstance().reloadResourcesConcurrently();
-            }
+        LOGGER.info("Applying server pack {}", packZip);
+        ResourcePackProfile newServerPack = ResourcePackProfile.of(
+            "server",
+            SERVER_NAME_TEXT,
+            true,
+            name -> new ZipResourcePack(name, packZip, false),
+            metadata,
+            ResourceType.CLIENT_RESOURCES,
+            ResourcePackProfile.InsertionPosition.TOP,
+            false,
+            packSource
+        );
+        if (this.serverContainer == null || !isPackCached(packZip)) {
+            this.serverContainer = newServerPack;
+            Configuration.inst().cacheServerPack(packZip);
+            return MinecraftClient.getInstance().reloadResourcesConcurrently();
         }
+        ResourcepackDevTool.showLoadServerPackFromCacheToast();
+        return CompletableFuture.completedFuture(null);
+    }
+
+    private static boolean isMewCraftPack(ResourcePackProfile.Metadata metadata) {
+        return metadata.description().getString().contains("mewcraft") ||
+               metadata.description().getString().contains("上古时代");
     }
 
     private static boolean isPackCached(File packZip) {
