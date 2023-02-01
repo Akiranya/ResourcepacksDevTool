@@ -29,6 +29,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
     @Shadow @Nullable private ResourcePackProfile serverContainer;
 
+    @Shadow @Final private static Text SERVER_NAME_TEXT;
+
     /**
      * @author LoneDev
      * @reason Do not remove server resource pack from memory on leave for faster re-join
@@ -54,31 +56,42 @@ import java.util.concurrent.locks.ReentrantLock;
     @Overwrite public CompletableFuture<Void> loadServerPack(File packZip, ResourcePackSource packSource) {
         ResourcePackProfile.PackFactory packFactory = (name) -> new ZipResourcePack(name, packZip, false);
         ResourcePackProfile.Metadata metadata = ResourcePackProfile.loadMetadata("server", packFactory);
-        if (metadata == null)
+        if (metadata == null) {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid pack metadata at " + packZip));
-
-        LOGGER.info("Applying server pack {}", packZip);
-        ResourcePackProfile newServerPack = ResourcePackProfile.of(
-            "server",
-            Text.translatable("resourcePack.server.name"),
-            true,
-            name -> new ZipResourcePack(name, packZip, false),
-            metadata,
-            ResourceType.CLIENT_RESOURCES,
-            ResourcePackProfile.InsertionPosition.TOP,
-            false,
-            packSource
-        );
-
-        if (this.serverContainer == null || !isPackCached(packZip)) {
-            this.serverContainer = newServerPack;
-            Configuration.inst().cacheServerPack(packZip);
-            return MinecraftClient.getInstance().reloadResourcesConcurrently();
         } else {
-            ResourcepackDevTool.showLoadServerPackFromCacheToast();
-        }
+            LOGGER.info("Applying server pack {}", packZip);
 
-        return CompletableFuture.completedFuture(null);
+            if (metadata.description().getString().contains("mewcraft") ||
+                metadata.description().getString().contains("上古时代")
+            ) {
+                // We are playing MewCraft!
+
+                ResourcePackProfile newServerPack = ResourcePackProfile.of(
+                    "server",
+                    Text.translatable("resourcePack.server.name"),
+                    true,
+                    name -> new ZipResourcePack(name, packZip, false),
+                    metadata,
+                    ResourceType.CLIENT_RESOURCES,
+                    ResourcePackProfile.InsertionPosition.TOP,
+                    false,
+                    packSource
+                );
+                if (this.serverContainer == null || !isPackCached(packZip)) {
+                    this.serverContainer = newServerPack;
+                    Configuration.inst().cacheServerPack(packZip);
+                    return MinecraftClient.getInstance().reloadResourcesConcurrently();
+                } else {
+                    ResourcepackDevTool.showLoadServerPackFromCacheToast();
+                    return CompletableFuture.completedFuture(null);
+                }
+            } else {
+                // We are playing a random server :(
+
+                this.serverContainer = ResourcePackProfile.of("server", SERVER_NAME_TEXT, true, packFactory, metadata, ResourceType.CLIENT_RESOURCES, ResourcePackProfile.InsertionPosition.TOP, true, packSource);
+                return MinecraftClient.getInstance().reloadResourcesConcurrently();
+            }
+        }
     }
 
     private static boolean isPackCached(File packZip) {
