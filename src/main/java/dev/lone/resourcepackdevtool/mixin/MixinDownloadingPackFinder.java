@@ -56,10 +56,10 @@ import java.util.concurrent.locks.ReentrantLock;
         try (ZipResourcePack zipResourcePack = new ZipResourcePack(packFile)) {
             packResourceMetadata = zipResourcePack.parseMetadata(PackResourceMetadata.READER);
         } catch (Throwable exc) {
-            return Util.completeExceptionally(new IOException(String.format("Invalid resourcepack at %s", packFile), exc));
+            return Util.completeExceptionally(new IOException(String.format("无效资源包 %s", packFile), exc));
         }
 
-        LOGGER.info("Applying server pack {}", packFile);
+        LOGGER.info("正在应用服务器资源包 {}", packFile);
         ResourcePackProfile newServerPack = new ResourcePackProfile("server", true, () -> {
             return new ZipResourcePack(packFile);
         }, Text.translatable("resourcePack.server.name"), packResourceMetadata.getDescription(), ResourcePackCompatibility.from(packResourceMetadata, ResourceType.CLIENT_RESOURCES), ResourcePackProfile.InsertionPosition.TOP, false, packSource);

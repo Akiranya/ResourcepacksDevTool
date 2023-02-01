@@ -15,6 +15,6 @@ public class ResourcepackDevTool implements ModInitializer {
     }
 
     public static void showLoadServerPackFromCacheToast() {
-        CustomToast.show(MinecraftClient.getInstance().getToastManager(), Text.literal("Resourcepack"), Text.literal("Loaded server resourcepack from cache."));
+        CustomToast.show(MinecraftClient.getInstance().getToastManager(), Text.literal("快速资源包"), Text.literal("从缓存中提前载入服务器资源包."));
     }
 }
