@@ -19,7 +19,7 @@ public class ResourcepackDevTool implements ModInitializer {
     public static void showLoadServerPackFromCacheToast() {
         CustomToast.show(MinecraftClient.getInstance().getToastManager(),
             Text.literal("MewCraft 上古时代服务器 ❤"),
-            Text.literal("已从您的游戏内存中快速读取资源包"),
+            Text.literal("已从游戏内存中快速读取资源包"),
             2000);
     }
 }
