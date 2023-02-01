@@ -3,11 +3,12 @@ package dev.lone.resourcepackdevtool.mixin;
 import dev.lone.resourcepackdevtool.Configuration;
 import dev.lone.resourcepackdevtool.ResourcepackDevTool;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.resource.ClientBuiltinResourcePackProvider;
-import net.minecraft.resource.*;
-import net.minecraft.resource.metadata.PackResourceMetadata;
+import net.minecraft.client.resource.ServerResourcePackProvider;
+import net.minecraft.resource.ResourcePackProfile;
+import net.minecraft.resource.ResourcePackSource;
+import net.minecraft.resource.ResourceType;
+import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.text.Text;
-import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
@@ -16,11 +17,10 @@ import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
-@Mixin(ClientBuiltinResourcePackProvider.class) public abstract class MixinDownloadingPackFinder {
+@Mixin(ServerResourcePackProvider.class) public abstract class MixinDownloadingPackFinder {
     @Shadow @Final private ReentrantLock lock;
 
     @Shadow @Nullable private CompletableFuture<?> downloadTask;
@@ -51,22 +51,28 @@ import java.util.concurrent.locks.ReentrantLock;
      * @author LoneDev
      * @reason Do not remove server resource pack from memory on leave for faster re-join
      */
-    @Overwrite public CompletableFuture<Void> loadServerPack(File packFile, ResourcePackSource packSource) {
-        PackResourceMetadata packResourceMetadata;
-        try (ZipResourcePack zipResourcePack = new ZipResourcePack(packFile)) {
-            packResourceMetadata = zipResourcePack.parseMetadata(PackResourceMetadata.READER);
-        } catch (Throwable exc) {
-            return Util.completeExceptionally(new IOException(String.format("无效资源包 %s", packFile), exc));
-        }
+    @Overwrite public CompletableFuture<Void> loadServerPack(File packZip, ResourcePackSource packSource) {
+        ResourcePackProfile.PackFactory packFactory = (name) -> new ZipResourcePack(name, packZip, false);
+        ResourcePackProfile.Metadata metadata = ResourcePackProfile.loadMetadata("server", packFactory);
+        if (metadata == null)
+            return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid pack metadata at " + packZip));
 
-        LOGGER.info("正在应用服务器资源包 {}", packFile);
-        ResourcePackProfile newServerPack = new ResourcePackProfile("server", true, () -> {
-            return new ZipResourcePack(packFile);
-        }, Text.translatable("resourcePack.server.name"), packResourceMetadata.getDescription(), ResourcePackCompatibility.from(packResourceMetadata, ResourceType.CLIENT_RESOURCES), ResourcePackProfile.InsertionPosition.TOP, false, packSource);
+        LOGGER.info("Applying server pack {}", packZip);
+        ResourcePackProfile newServerPack = ResourcePackProfile.of(
+            "server",
+            Text.translatable("resourcePack.server.name"),
+            true,
+            name -> new ZipResourcePack(name, packZip, false),
+            metadata,
+            ResourceType.CLIENT_RESOURCES,
+            ResourcePackProfile.InsertionPosition.TOP,
+            false,
+            packSource
+        );
 
-        if (this.serverContainer == null || !isPackCached(packFile)) {
+        if (this.serverContainer == null || !isPackCached(packZip)) {
             this.serverContainer = newServerPack;
-            Configuration.inst().cacheServerPack(packFile);
+            Configuration.inst().cacheServerPack(packZip);
             return MinecraftClient.getInstance().reloadResourcesConcurrently();
         } else {
             ResourcepackDevTool.showLoadServerPackFromCacheToast();

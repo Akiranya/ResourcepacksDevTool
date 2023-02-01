@@ -9,7 +9,9 @@ public class ResourcepackDevTool implements ModInitializer {
     @Override
     public void onInitialize() {
         if (Configuration.inst().hasPackCached()) {
-            MinecraftClient.getInstance().getResourcePackProvider().loadServerPack(Configuration.inst().getLastPack(), ResourcePackSource.PACK_SOURCE_SERVER)
+            MinecraftClient.getInstance()
+                .getServerResourcePackProvider()
+                .loadServerPack(Configuration.inst().getLastPack(), ResourcePackSource.SERVER)
                 .thenRun(ResourcepackDevTool::showLoadServerPackFromCacheToast);
         }
     }
