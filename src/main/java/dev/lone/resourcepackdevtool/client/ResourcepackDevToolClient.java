@@ -5,11 +5,9 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
 @Environment(EnvType.CLIENT)
-public class ResourcepackDevToolClient implements ClientModInitializer
-{
+public class ResourcepackDevToolClient implements ClientModInitializer {
     @Override
-    public void onInitializeClient()
-    {
+    public void onInitializeClient() {
 
     }
 }

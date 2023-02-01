@@ -20,43 +20,27 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.locks.ReentrantLock;
 
-@Mixin(ClientBuiltinResourcePackProvider.class)
-public abstract class MixinDownloadingPackFinder
-{
-    @Shadow
-    @Final
-    private ReentrantLock lock;
+@Mixin(ClientBuiltinResourcePackProvider.class) public abstract class MixinDownloadingPackFinder {
+    @Shadow @Final private ReentrantLock lock;
 
-    @Shadow
-    @Nullable
-    private CompletableFuture<?> downloadTask;
+    @Shadow @Nullable private CompletableFuture<?> downloadTask;
 
-    @Shadow
-    @Final
-    private static Logger LOGGER;
+    @Shadow @Final private static Logger LOGGER;
 
-    @Shadow
-    @Nullable
-    private ResourcePackProfile serverContainer;
+    @Shadow @Nullable private ResourcePackProfile serverContainer;
 
     /**
      * @author LoneDev
      * @reason Do not remove server resource pack from memory on leave for faster re-join
      */
-    @Overwrite
-    public CompletableFuture<?> clear()
-    {
+    @Overwrite public CompletableFuture<?> clear() {
         this.lock.lock();
 
-        try
-        {
-            if (this.downloadTask != null)
-                this.downloadTask.cancel(true);
+        try {
+            if (this.downloadTask != null) this.downloadTask.cancel(true);
 
             this.downloadTask = null;
-        }
-        finally
-        {
+        } finally {
             this.lock.unlock();
         }
 
@@ -67,16 +51,11 @@ public abstract class MixinDownloadingPackFinder
      * @author LoneDev
      * @reason Do not remove server resource pack from memory on leave for faster re-join
      */
-    @Overwrite
-    public CompletableFuture<Void> loadServerPack(File packFile, ResourcePackSource packSource)
-    {
+    @Overwrite public CompletableFuture<Void> loadServerPack(File packFile, ResourcePackSource packSource) {
         PackResourceMetadata packResourceMetadata;
-        try (ZipResourcePack zipResourcePack = new ZipResourcePack(packFile))
-        {
+        try (ZipResourcePack zipResourcePack = new ZipResourcePack(packFile)) {
             packResourceMetadata = zipResourcePack.parseMetadata(PackResourceMetadata.READER);
-        }
-        catch (Throwable exc)
-        {
+        } catch (Throwable exc) {
             return Util.completeExceptionally(new IOException(String.format("Invalid resourcepack at %s", packFile), exc));
         }
 
@@ -85,25 +64,20 @@ public abstract class MixinDownloadingPackFinder
             return new ZipResourcePack(packFile);
         }, Text.translatable("resourcePack.server.name"), packResourceMetadata.getDescription(), ResourcePackCompatibility.from(packResourceMetadata, ResourceType.CLIENT_RESOURCES), ResourcePackProfile.InsertionPosition.TOP, false, packSource);
 
-        if (this.serverContainer == null || !isPackCached(packFile))
-        {
+        if (this.serverContainer == null || !isPackCached(packFile)) {
             this.serverContainer = newServerPack;
             Configuration.inst().cacheServerPack(packFile);
             return MinecraftClient.getInstance().reloadResourcesConcurrently();
-        }
-        else
-        {
+        } else {
             ResourcepackDevTool.showLoadServerPackFromCacheToast();
         }
 
         return CompletableFuture.completedFuture(null);
     }
 
-    private static boolean isPackCached(File packZip)
-    {
+    private static boolean isPackCached(File packZip) {
         File lastPack = Configuration.inst().getLastPack();
-        if(lastPack == null)
-            return false;
+        if (lastPack == null) return false;
         return packZip.getName().equals(lastPack.getName());
     }
 }
